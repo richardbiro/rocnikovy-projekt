@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import random
 import cProfile
-from mpl_toolkits.mplot3d import Axes3D
 
 solutions = dict()
 correct_solutions = []
@@ -12,6 +11,7 @@ relatively_prime = []
 labels = []
 six_squares = []
 seven_squares = []
+
 
 def gcd_array(array):
     if len(array) < 2: return None
@@ -144,16 +144,13 @@ def add_all_labels(upper_bound):
         labels.append(i)
         six_squares.append(0)
         seven_squares.append(0)
-
-
-def create_progress_bar():
-    print("START |",str(datetime.now()))
-    print("END |",str(datetime.now()),"\n")
-
+    
+    
     
 
 def get_pairs():
     return relatively_prime
+
 
 
 def add_all_pairs(upper_bound):
@@ -165,6 +162,7 @@ def add_all_pairs(upper_bound):
                 relatively_prime.append([i,j])
 
     relatively_prime.sort()
+
 
 
 def align(data,length):
@@ -182,7 +180,6 @@ def seconds_to_time(sec):
 
 def run_all_pairs():
     progress = 0
-    
     n = len(relatively_prime)
     allsteps = n*(n-1)//2
     step = 0
@@ -197,6 +194,7 @@ def run_all_pairs():
             v2 = relatively_prime[i2][1]
             run_configuration(u1,v1,u2,v2)
             step += 1
+            
             if step/allsteps * 100 > progress:
                 print(align(progress,3),"% |",align(step,len(str(allsteps))),"out of",allsteps,
                       "| estimated remaining time:",
@@ -243,12 +241,14 @@ def fixed_search(upper_bound):
 
 
 
+
 def random_search(upper_bound,k):
     add_all_labels(upper_bound)
     for _ in range(k):
         first_pair = random_relatively_prime(upper_bound)
         second_pair = random_relatively_prime(upper_bound)
         run_configuration(first_pair[0],first_pair[1],second_pair[0],second_pair[1])
+    show_graph()
         
 
     
@@ -277,13 +277,12 @@ def get_int_input(text,error):
 def main():
     search_fixed = False
     search = get_input("Type 'bruteforce' to search all solutions.\n" +
-                       "Type 'random' to search random solutions.\n" +
-                       "Type 'advanced' to search solutions using simulated annealing.\n",
-                       ["bruteforce","random","advanced"],"Invalid command.\n")
+                       "Type 'random' to search random solutions.\n",
+                       ["bruteforce","random"],"Invalid command.\n")
 
     upper_bound = get_int_input("\nChoose a positive integer - upper bound for solutions:\n" +
                                 "Tip: bruteforce search for upper bound above 100 may run for a very long time.\n" +
-                                "Tip: bruteforce search for upper bound above 200 is currently out of reach.",
+                                "Tip: bruteforce search for upper bound above 300 is currently out of reach.",
                                 "Invalid positive integer.\n")     
 
     if search == "bruteforce": fixed_search(upper_bound)
@@ -292,12 +291,11 @@ def main():
         get_int_input("\nChoose a positive integer - number of iterations:","Invalid positive integer.\n"))
     
 
-    print("")
-    print(len(solutions) - len(correct_solutions),"solutions with six squares.")
+    print("\n" + str(len(solutions) - len(correct_solutions)),"solutions with six squares.\n")
     print(len(correct_solutions),"solutions with at least seven squares:")
     for i in correct_solutions:
         print(" ".join(map(str,i[0])))
-        print("where u1 = " + str(i[1]) + ", v1 = " + str(i[2]) + ", u2 = " + str(i[3]) + ", v2 = " + str(i[4]))
+        print("where u1 = " + str(i[1]) + ", v1 = " + str(i[2]) + ", u2 = " + str(i[3]) + ", v2 = " + str(i[4]) + "\n")
     input("\nPress any key to end.")
 
 
