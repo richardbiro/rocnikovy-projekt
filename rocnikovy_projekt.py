@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import random
-import multiprocessing as mp
+from multiprocessing import Pool
 
 file = str(datetime.now())
 file = file[:file.index(".")]
@@ -31,6 +31,24 @@ def is_square(n):
     if n < 0:
         return False
     return int(math.isqrt(n))**2 == n
+
+def get_pairs():
+    return relatively_prime
+
+def add_all_labels(upper_bound):
+    for i in range(upper_bound+1):
+        labels.append(i)
+        six_squares.append(0)
+        seven_squares.append(0)
+        
+def add_all_pairs(upper_bound):
+    for i in range(1, upper_bound+1):
+        for j in range(i, upper_bound+1):
+            if math.gcd(i, j) == 1:
+                relatively_prime.append([max(i, j), i, j])
+    relatively_prime.sort()
+    for i in range(len(relatively_prime)):
+        relatively_prime[i].pop(0)
 
 def get_solutions():
     return solutions
@@ -86,38 +104,6 @@ def add_solution(array, u1, v1, u2, v2):
                     seven_squares[largest] += 1
                     add_correct_solution(array, u1, v1, u2, v2)
 
-def evaluate_rows(array):
-    for i in range(3):
-        for j in range(3):
-            if (array[3*i+j%3] is not None and
-                    array[3*i+(j+1)%3] is not None and
-                    array[3*i+(j+2)%3] is None):
-                array[3*i+(j+2)%3] = 3*array[4] - array[3*i+j%3] - array[3*i+(j+1)%3]
-
-def evaluate_columns(array):
-    for i in range(3):
-        for j in range(3):
-            if (array[i+3*(j%3)] is not None and
-                    array[i+3*((j+1)%3)] is not None and
-                    array[i+3*((j+2)%3)] is None):
-                array[i+3*((j+2)%3)] = 3*array[4] - array[i+3*(j%3)] - array[i+3*((j+1)%3)]
-
-def evaluate_two_edges(array):
-    for i in range(2):
-        for j in range(2):
-            if (array[1+6*i] is not None and
-                    array[3+2*j] is not None):
-                array[8-6*i-2*j] = (array[1+6*i] + array[3+2*j])//2
-
-def evaluate_square(array):
-    evaluate_rows(array)
-    evaluate_columns(array)
-    evaluate_two_edges(array)
-
-    if None in array:
-        return None
-    return array
-
 def normalize(array, divisor):
     for i in range(len(array)):
         array[i] = (array[i]//divisor)**2
@@ -138,43 +124,26 @@ def run_configuration(u1, v1, u2, v2):
     y2 = constants[4]
     squares = []
 
-    squares.append(evaluate_square([x1, y1, None,
-                                    None, center, None,
-                                    None, y2, x2]))
+    squares.append([x1, y1, 3*center - x1 - y1,
+                    x2 + y2 - x1, center, x1 + y1 - x2,
+                    3*center - x2 - y2, y2, x2])
 
-    squares.append(evaluate_square([x1, y2, None,
-                                    None, center, None,
-                                    None, y1, x2]))
+    squares.append([x1, y2, 3*center - x1 - y2,
+                    y1 + x2 - x1, center, x1 + y2 - x2,
+                    3*center - y1 - x2, y1, x2])
 
-    squares.append(evaluate_square([x1, None, y1,
-                                    None, center, None,
-                                    y2, None, x2]))
+    squares.append([x1, 3*center - x1 - y1, y1,
+                    3*center - x1 - y2, center, 3*center - y1 - x2,
+                    y2, 3*center - x2 - y2, x2])
 
-    squares.append(evaluate_square([None, x1, None,
-                                    y1, center, y2,
-                                    None, x2, None]))
-    for i in squares:
-        if i is not None:
-            add_solution(i, u1, v1, u2, v2)
-
-def add_all_labels(upper_bound):
-    for i in range(upper_bound+1):
-        labels.append(i)
-        six_squares.append(0)
-        seven_squares.append(0)
-        
-def get_pairs():
-    return relatively_prime
-
-def add_all_pairs(upper_bound):
-    add_all_labels(upper_bound)
+    if x1%2 == y1%2 == x2%2 == y2%2:
+        squares.append([(x2 + y2)//2, x1, (x2 + y1)//2,
+                        y1, center, y2,
+                        (x1 + y2)//2, x2, (x1 + y1)//2])
     
-    for i in range(1, upper_bound+1):
-        for j in range(1, upper_bound+1):
-            if math.gcd(i, j) == 1:
-                relatively_prime.append([i, j])
-
-    relatively_prime.sort()
+    for i in squares:
+        add_solution(i, u1, v1, u2, v2)
+    check_time()
 
 def align(data, length):
     return (length - len(str(data)))*" " + str(data)
@@ -185,17 +154,20 @@ def seconds_to_time(sec):
     answer += str((sec%3600)%60) + "s"
     return answer
 
-def run_all_pairs():
+def run_all_pairs(lower_bound):
     progress = 0
     n = len(relatively_prime)
-    allsteps = n*(n-1)//2
     step = 0
+    i = 0
+    while max(relatively_prime[i]) < lower_bound:
+        i += 1
+    allsteps = n*(n-1)//2 - i*(i-1)//2
     
     print("\nSTART |", str(datetime.now()))
     for i1 in range(n):
         u1 = relatively_prime[i1][0]
         v1 = relatively_prime[i1][1]
-        for i2 in range(i1+1, n):
+        for i2 in range(max(i, i1+1), n):
             u2 = relatively_prime[i2][0]
             v2 = relatively_prime[i2][1]
             run_configuration(u1, v1, u2, v2)
@@ -204,47 +176,44 @@ def run_all_pairs():
             if step/allsteps * 100 > progress:
                 print(align(progress, 3), "% |", align(step, len(str(allsteps))),
                       "out of", allsteps, "| estimated remaining time:",
-                      align(seconds_to_time((allsteps-step)//9300), 12))
+                      align(seconds_to_time((allsteps-step)//16400), 12))
                 progress += 5
-            check_time()
-    write_buffer()
     print("END |", str(datetime.now()), "\n")
 
-def show_graph():
-    x = np.arange(len(labels))
+def show_graph(lower_bound):
+    x = np.arange(len(labels[lower_bound:]))
     width = 0.35
 
     fig, ax = plt.subplots()
-    ax.bar(x - width/2, six_squares, width, label='exactly 6 entries are squares')
-    ax.bar(x + width/2, seven_squares, width, label='at least 7 entries are squares')
+    ax.bar(x - width/2, six_squares[lower_bound:], width, label='exactly 6 entries are squares')
+    ax.bar(x + width/2, seven_squares[lower_bound:], width, label='at least 7 entries are squares')
 
     ax.set_xlabel('Maximum from u1, v1, u2, v2')
     ax.set_xticks(x)
-    ax.set_xticklabels(labels)
+    ax.set_xticklabels(labels[lower_bound:])
     ax.legend()
 
     fig.tight_layout()
     plt.show()
 
-def random_relatively_prime(upper_bound):
-    first = random.randint(1, upper_bound-1)
-    second = random.randint(1, upper_bound-1)
+def random_relatively_prime(lower_bound, upper_bound):
+    first = random.randint(lower_bound, upper_bound-1)
+    second = random.randint(lower_bound, upper_bound-1)
     divisor = math.gcd(first, second)
     return [first//divisor, second//divisor]
 
-def fixed_search(upper_bound):
+def fixed_search(lower_bound, upper_bound):
     add_all_pairs(upper_bound)
-    cProfile.run('run_all_pairs()')
-    show_graph()
+    cProfile.runctx('r(l)', {'r': run_all_pairs}, {'l': lower_bound})
+    show_graph(lower_bound)
 
-def random_search(upper_bound, k):
-    add_all_labels(upper_bound)
+def random_search(lower_bound, upper_bound, k):
     for _ in range(k):
-        first_pair = random_relatively_prime(upper_bound)
-        second_pair = random_relatively_prime(upper_bound)
+        first_pair = random_relatively_prime(lower_bound, upper_bound)
+        second_pair = random_relatively_prime(lower_bound, upper_bound)
         run_configuration(first_pair[0], first_pair[1],
                           second_pair[0], second_pair[1])
-    show_graph()
+    show_graph(lower_bound)
 
 def get_input(text, answers, error):
     while True:
@@ -258,8 +227,8 @@ def get_int_input(text, error):
     while True:
         print(text)
         try:
-            upper_bound = int(input())
-            return upper_bound
+            value = int(input())
+            return value
         except ValueError:
             print(error)
 
@@ -268,21 +237,30 @@ def main():
                        "Type 'random' to search random solutions.\n",
                        ["bruteforce", "random"], "Invalid command.\n")
 
+    lower_bound = get_int_input("\nChoose a positive integer - lower bound for solutions:",
+                                "Invalid positive integer.\n")
+
     upper_bound = get_int_input("\nChoose a positive integer - upper bound for solutions:\n" +
                                 "Tip: bruteforce search for upper bound > 100 may take long.\n" +
                                 "Tip: bruteforce search for upper bound > 300 is out of reach.",
                                 "Invalid positive integer.\n")
 
+    if lower_bound > upper_bound:
+        print("\nLower bound is higher than upper bound, so the bounds will be swapped.\n")
+        lower_bound, upper_bound = upper_bound, lower_bound
+
+    add_all_labels(upper_bound)
+
     with open(file, 'w') as f:
         f.write("")
 
     if search == "bruteforce":
-        fixed_search(upper_bound)
+        fixed_search(lower_bound, upper_bound)
     elif search == "random":
-        random_search(upper_bound,
+        random_search(lower_bound, upper_bound,
                       get_int_input("\nChoose a positive integer - number of iterations:",
                                     "Invalid positive integer.\n"))
-    
+    write_buffer()
 
     print("\n" + str(len(solutions) - len(correct_solutions)), "solutions with six squares.\n")
     print(len(correct_solutions), "solutions with at least seven squares:")
