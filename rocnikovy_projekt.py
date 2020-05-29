@@ -5,12 +5,16 @@ import matplotlib.pyplot as plt
 from numpy import arange
 from random import randint
 from multiprocessing import Pool
-from itertools import combinations
 
 file = str(datetime.now())
 file = file[:file.index(".")]
 file = file.replace(":", "-")
 file = file + ".txt"
+
+file_correct = str(datetime.now())
+file_correct = file_correct[:file_correct.index(".")]
+file_correct = file_correct.replace(":", "-")
+file_correct = file_correct + " correct.txt"
 
 solutions = dict()
 correct_solutions = []
@@ -85,6 +89,10 @@ def add_solution(array, uv):
             seven_squares[largest] += 1
             if [array, u1, v1, u2, v2] not in correct_solutions:
                 correct_solutions.append([array, u1, v1, u2, v2])
+                with open(file_correct, 'a') as f:
+                    f.write(str(str(squares) + " squares | u1 = " + str(u1) +
+                                " | v1 = " + str(v1) + " | u2 = " + str(u2) +
+                                " | v2 = " + str(v2) + " | " + str(square) + "\n"))
 
 def normalize(array, divisor):
     for i in range(len(array)):
@@ -209,8 +217,10 @@ def show_graph(lower_bound):
     plt.show()
 
 def random_relatively_prime(lower_bound, upper_bound):
-    first = randint(lower_bound, upper_bound-1)
-    second = randint(lower_bound, upper_bound-1)
+    first = randint(lower_bound, upper_bound)
+    second = randint(lower_bound, upper_bound)
+    if first > second:
+        first, second = second, first
     divisor = gcd(first, second)
     return [first//divisor, second//divisor]
 
@@ -266,6 +276,9 @@ def main():
     with open(file, 'w') as f:
         f.write("")
 
+    with open(file_correct, 'w') as f:
+        f.write("")
+
     if search == "bruteforce":
         fixed_search(lower_bound, upper_bound)
     elif search == "random":
@@ -286,7 +299,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
-
