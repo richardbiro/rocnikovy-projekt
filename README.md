@@ -1,6 +1,8 @@
 # rocnikovy-projekt  
 Algoritmus, ktory preveruje hypotezu o magickych stvorcoch.  
 
+Program je napisany v Pythone. Na spustenie potrebujete mat **Python 3.8** a stiahnutu kniznicu **matplotlib**.
+
 Podrobnu dokumentaciu kodu a popis algoritmu najdete v prilozenom PDF.  
 
 Program spustite cez prikazovy riadok prikazom:  
