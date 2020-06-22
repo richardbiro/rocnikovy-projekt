@@ -11,7 +11,7 @@ from math import gcd, isqrt
 import matplotlib.pyplot as plt
 from numpy import arange
 from random import randint
-from multiprocessing import Pool
+from multiprocessing import cpu_count, Pool
 
 #Meno suboru, do ktoreho zapisujeme magicke stvorce s 6 a viac stvorcami
 file = str(datetime.now())
@@ -31,6 +31,7 @@ relatively_prime = []
 labels = []
 six_squares = []
 seven_squares = []
+cpu_used = cpu_count()
 
 #Funkcia vezme pole cisel a vrati ich najmensieho spolocneho delitela
 def gcd_array(array):
@@ -180,8 +181,9 @@ def seconds_to_time(sec):
 
 #Funkcia prejde paralelne vsetky konfiguracie v execute-liste
 def execute_parallel(execute_list):
+    global cpu_used
     start = datetime.now()
-    p = Pool()
+    p = Pool(cpu_used)
     results = p.map(run_configuration, execute_list)
     for i in range(len(results)):
         for S in results[i][0]:
@@ -211,7 +213,7 @@ def run_all_pairs(lower_bound):
     execute_list = []
     block = 10**6
     
-    print("\nSTART |", str(datetime.now()))
+    print("START |", str(datetime.now()))
     for i1 in range(n):
         u1 = relatively_prime[i1][0]
         v1 = relatively_prime[i1][1]
@@ -235,9 +237,11 @@ def run_random_pairs(lower_bound, upper_bound, k):
     
     print("\nSTART |", str(datetime.now()))
     for i in range(k):
-        first_pair = random_relatively_prime(lower_bound, upper_bound)
-        second_pair = random_relatively_prime(lower_bound, upper_bound)
-        execute_list.append(first_pair + second_pair)
+        u1 = randint(1, upper_bound-1)
+        v1 = randint(u1+1, upper_bound)
+        u2 = randint(1, upper_bound-1)
+        v2 = randint(max(max(v1, u2+1), lower_bound), upper_bound)
+        execute_list.append([u1, v1, u2, v2])
         if len(execute_list) > block or i == k-1:
             diff = execute_parallel(execute_list)
             execute_list = []
@@ -262,15 +266,6 @@ def show_graph(lower_bound):
     fig.tight_layout()
     plt.show()
 
-#Funkcia vygeneruje nahodnu usporiadanu dvojicu nesudelitelnych cisel
-def random_relatively_prime(lower_bound, upper_bound):
-    first = randint(lower_bound, upper_bound)
-    second = randint(lower_bound, upper_bound)
-    if first > second:
-        first, second = second, first
-    divisor = gcd(first, second)
-    return [first//divisor, second//divisor]
-
 #Funkcia spusti bruteforce vyhladavanie od lower_bound po upper_bound
 def fixed_search(lower_bound, upper_bound):
     add_all_pairs(upper_bound)
@@ -281,19 +276,31 @@ def random_search(lower_bound, upper_bound, k):
     runctx('r(l, u, k)', {'r': run_random_pairs}, {'l': lower_bound, 'u': upper_bound, 'k': k})           
 
 def main():
+    global cpu_used
     parser = ArgumentParser(description="search for a magic square within given bounds " +
                             "(maximum of u1,v1,u2,v2)")
     parser.add_argument("search", help="type of search (bruteforce or random)")
     parser.add_argument("lower_bound", help="lower bound for solutions", type=int)
     parser.add_argument("upper_bound", help="upper bound for solutions", type=int)
+    parser.add_argument("--cpu", default = cpu_count(), help="number of cpu cores used (" +
+                        str(cpu_count()) + " by default)", type=int)
     parser.add_argument("--iterations", default = 10**7, help="number of iterations in random " +
                         "search (10^7 by default)", type=int)
+    
     args = parser.parse_args()
     args.lower_bound = abs(args.lower_bound)
     args.upper_bound = abs(args.upper_bound)
     
+    if args.cpu < 1:
+        args.cpu = 1
+    elif args.cpu > cpu_count():
+        args.cpu = cpu_count()
+
+    cpu_used = args.cpu
+    print("Search will use " + str(cpu_used) + " cpu cores (" + str(cpu_count()) + " available)\n")
+    
     if args.lower_bound > args.upper_bound:
-        print("\nLower bound is higher than upper bound, so they will be swapped.\n")
+        print("Lower bound is higher than upper bound, so they will be swapped.\n")
         args.lower_bound, args.upper_bound = args.upper_bound, args.lower_bound
 
     add_all_labels(args.upper_bound)
